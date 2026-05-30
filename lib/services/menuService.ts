@@ -18,7 +18,7 @@ export async function getMenuById(id: string): Promise<IMenu | null> {
 
 export async function toggleMenuAvailability(id: string, isAvailable: boolean): Promise<IMenu | null> {
   await connectToDatabase();
-  return Menu.findByIdAndUpdate(id, { isAvailable }, { new: true }).exec();
+  return Menu.findByIdAndUpdate(id, { isAvailable }, { returnDocument: "after" }).exec();
 }
 
 export async function createMenu(menuData: Partial<IMenu>): Promise<IMenu> {
@@ -29,7 +29,7 @@ export async function createMenu(menuData: Partial<IMenu>): Promise<IMenu> {
 
 export async function updateMenu(id: string, menuData: Partial<IMenu>): Promise<IMenu | null> {
   await connectToDatabase();
-  return Menu.findByIdAndUpdate(id, menuData, { new: true }).exec();
+  return Menu.findByIdAndUpdate(id, menuData, { returnDocument: "after" }).exec();
 }
 
 export async function deleteMenu(id: string): Promise<IMenu | null> {

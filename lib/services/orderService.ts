@@ -108,7 +108,7 @@ export async function createOrder(orderData: {
       $inc: { totalOrders: 1 },
       $set: { lastOrderAt: new Date() },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   // Send push notification to the owner about a new order!
@@ -163,7 +163,7 @@ export async function updateOrderStatus(
     updateData.paymentStatus = "paid";
   }
 
-  const updatedOrder = await Order.findByIdAndUpdate(id, updateData, { new: true }).exec();
+  const updatedOrder = await Order.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).exec();
 
   if (updatedOrder) {
     // Push LINE status update to customer
