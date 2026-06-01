@@ -189,21 +189,22 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
 
     // Validate that order is in 'pending' status
     if (order.status !== "pending") {
-      if (order.status === "cancelled") {
-        await replyMessage(replyToken, [
-          {
-            type: "text",
-            text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} นี้ถูกยกเลิกไปแล้ว หากต้องการสั่งใหม่กรุณาพิมพ์ 'สั่ง' หรือ 'เมนู' ค่ะ`,
-          },
-        ]);
-      } else {
-        await replyMessage(replyToken, [
-          {
-            type: "text",
-            text: `ออเดอร์ #${order.orderId} ได้รับการยืนยันแล้วค่ะ คุณสามารถพิมพ์ 'ดูออเดอร์' เพื่อเช็คสถานะล่าสุดได้เลยนะคะ 😊`,
-          },
-        ]);
-      }
+      const statusTranslations: Record<string, string> = {
+        confirmed: "ได้รับการยืนยันและกำลังเตรียมวัตถุดิบแล้วค่ะ 🍳",
+        preparing: "กำลังปรุงอาหารอย่างพิถีพิถันอยู่ค่ะ 👩‍🍳",
+        ready: "ปรุงเสร็จเรียบร้อยพร้อมเสิร์ฟ/จัดส่งแล้วค่ะ 📦",
+        completed: "เสร็จสมบูรณ์เรียบร้อยแล้วค่ะ 🥰",
+        cancelled: "ถูกยกเลิกเรียบร้อยแล้วค่ะ ❌",
+      };
+
+      const currentStatusText = statusTranslations[order.status] || order.status;
+
+      await replyMessage(replyToken, [
+        {
+          type: "text",
+          text: `ออเดอร์ #${order.orderId} นี้${currentStatusText}\n\nหากต้องการเช็คสถานะล่าสุด สามารถพิมพ์ 'ดูออเดอร์' หรือติดต่อแอดมินได้ตลอดเวลาเลยนะคะ`,
+        },
+      ]);
       return;
     }
 
@@ -230,21 +231,22 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
 
     // Validate that order is in 'pending' status
     if (order.status !== "pending") {
-      if (order.status === "cancelled") {
-        await replyMessage(replyToken, [
-          {
-            type: "text",
-            text: `ออเดอร์ #${order.orderId} นี้ถูกยกเลิกเรียบร้อยแล้วค่ะ`,
-          },
-        ]);
-      } else {
-        await replyMessage(replyToken, [
-          {
-            type: "text",
-            text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} ได้รับการยืนยันหรืออยู่ในระหว่างดำเนินการแล้ว จึงไม่สามารถยกเลิกได้แล้วค่ะ หากมีข้อสงสัยเพิ่มเติมกรุณาแจ้งแอดมินนะคะ`,
-          },
-        ]);
-      }
+      const statusTranslations: Record<string, string> = {
+        confirmed: "ได้รับการยืนยันและกำลังเตรียมวัตถุดิบแล้วค่ะ 🍳",
+        preparing: "กำลังปรุงอาหารอย่างพิถีพิถันอยู่ค่ะ 👩‍🍳",
+        ready: "ปรุงเสร็จเรียบร้อยพร้อมเสิร์ฟ/จัดส่งแล้วค่ะ 📦",
+        completed: "เสร็จสมบูรณ์เรียบร้อยแล้วค่ะ 🥰",
+        cancelled: "ถูกยกเลิกเรียบร้อยแล้วค่ะ ❌",
+      };
+
+      const currentStatusText = statusTranslations[order.status] || order.status;
+
+      await replyMessage(replyToken, [
+        {
+          type: "text",
+          text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} นี้${currentStatusText} จึงไม่สามารถยกเลิกได้แล้วในขณะนี้ค่ะ`,
+        },
+      ]);
       return;
     }
 
