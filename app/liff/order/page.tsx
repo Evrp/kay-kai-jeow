@@ -4,13 +4,9 @@ import React, { useEffect, useState } from "react";
 import Script from "next/script";
 import {
   ShoppingBag,
-  Clock,
-  Sparkles,
-  Info,
   CheckCircle,
   AlertCircle,
   ChevronRight,
-  TrendingUp,
 } from "lucide-react";
 
 interface IMenuOption {
@@ -27,8 +23,22 @@ interface IMenu {
   options: IMenuOption[];
 }
 
+interface ILiff {
+  init: (config: { liffId: string }) => Promise<void>;
+  isLoggedIn: () => boolean;
+  login: () => void;
+  getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>;
+  isInClient: () => boolean;
+  closeWindow: () => void;
+}
+
+interface ICreatedOrder {
+  orderId: string;
+  totalPrice: number;
+  deliveryAddress: string;
+}
+
 export default function LiffOrderPage() {
-  const [liffLoaded, setLiffLoaded] = useState(false);
   const [profile, setProfile] = useState<{ userId: string; displayName: string; pictureUrl?: string } | null>(null);
   const [liffError, setLiffError] = useState("");
   const [menus, setMenus] = useState<IMenu[]>([]);
@@ -41,41 +51,55 @@ export default function LiffOrderPage() {
   const [note, setNote] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("รับที่ร้าน");
   const [orderStatus, setOrderStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const [createdOrder, setCreatedOrder] = useState<ICreatedOrder | null>(null);
 
-  // Load available menus from GET /api/menus
+  // Load available menus and initialize mock profile immediately if in dev mode
   useEffect(() => {
+    let active = true;
+    let timerId: NodeJS.Timeout;
+
     async function loadMenus() {
       try {
         const res = await fetch("/api/menus");
-        if (res.ok) {
+        if (res.ok && active) {
           const data = await res.json();
           setMenus(data.menus || []);
         }
       } catch (err) {
         console.error("Failed to load menus:", err);
       } finally {
-        setLoadingMenus(false);
+        if (active) setLoadingMenus(false);
       }
     }
     loadMenus();
+
+    // Fast mock load: if LIFF ID is not configured, load mockup immediately without loading LINE CDN script
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+    if (!liffId || liffId === "dummy_liff_id") {
+      console.warn("NEXT_PUBLIC_LIFF_ID is not configured. Running in Mock/Development Mode.");
+      timerId = setTimeout(() => {
+        if (active) {
+          setProfile({
+            userId: "U1234567890abcdef1234567890abcdef",
+            displayName: "นักพัฒนา (Mock Profile)",
+            pictureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
+          });
+        }
+      }, 0);
+    }
+
+    return () => {
+      active = false;
+      if (timerId) clearTimeout(timerId);
+    };
   }, []);
 
   // Initialize LIFF once SDK script is loaded
   const initLiff = () => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (!liffId || liffId === "dummy_liff_id") {
-      console.warn("NEXT_PUBLIC_LIFF_ID is not configured. Running in Mock/Development Mode.");
-      setProfile({
-        userId: "U1234567890abcdef1234567890abcdef",
-        displayName: "นักพัฒนา (Mock Profile)",
-        pictureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-      });
-      setLiffLoaded(true);
-      return;
-    }
+    if (!liffId || liffId === "dummy_liff_id") return;
 
-    const globalLiff = (window as any).liff;
+    const globalLiff = (window as unknown as { liff?: ILiff }).liff;
     if (!globalLiff) {
       setLiffError("ไม่พบ LINE LIFF SDK กรุณารีเฟรชหน้าจออีกครั้ง");
       return;
@@ -95,11 +119,10 @@ export default function LiffOrderPage() {
           displayName: userProfile.displayName,
           pictureUrl: userProfile.pictureUrl,
         });
-        setLiffLoaded(true);
       })
-      .catch((err: any) => {
+      .catch((err: Error) => {
         console.error("LIFF Initialization failed:", err);
-        setLiffError(`LIFF Init Error: ${err.message || err}`);
+        setLiffError(`LIFF Init Error: ${err.message || String(err)}`);
       });
   };
 
@@ -177,7 +200,7 @@ export default function LiffOrderPage() {
 
       // Auto close LIFF window after success if supported
       setTimeout(() => {
-        const globalLiff = (window as any).liff;
+        const globalLiff = (window as unknown as { liff?: ILiff }).liff;
         if (globalLiff && globalLiff.isInClient()) {
           globalLiff.closeWindow();
         }
@@ -188,29 +211,33 @@ export default function LiffOrderPage() {
     }
   };
 
+  const isMockMode = !process.env.NEXT_PUBLIC_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID === "dummy_liff_id";
+
   return (
     <>
-      {/* Load LINE LIFF SDK asynchronously */}
-      <Script
-        src="https://static.line-scdn.net/liff/edge/2/sdk.js"
-        onLoad={initLiff}
-        onError={() => setLiffError("ไม่สามารถดึงข้อมูล LINE SDK ได้")}
-      />
+      {/* Load LINE LIFF SDK asynchronously ONLY if a real LIFF ID is configured */}
+      {!isMockMode && (
+        <Script
+          src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+          onLoad={initLiff}
+          onError={() => setLiffError("ไม่สามารถดึงข้อมูล LINE SDK ได้")}
+        />
+      )}
 
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans p-4 antialiased selection:bg-indigo-500 selection:text-white pb-10">
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans p-4 antialiased selection:bg-amber-500 selection:text-zinc-950 pb-10">
         <div className="max-w-md mx-auto space-y-6">
           {/* LIFF Header / Customer Profile banner */}
-          <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-850 rounded-3xl p-5 shadow-xl flex items-center justify-between">
+          <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-850 rounded-3xl p-5 shadow-xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               {profile?.pictureUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profile.pictureUrl}
                   alt={profile.displayName}
-                  className="w-12 h-12 rounded-2xl border border-zinc-700 shadow-md object-cover"
+                  className="w-12 h-12 rounded-2xl border border-zinc-800 shadow-md object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/25 flex items-center justify-center font-bold text-sm">
+                <div className="w-12 h-12 bg-amber-500/10 text-amber-450 rounded-2xl border border-amber-500/25 flex items-center justify-center font-bold text-sm">
                   🍳
                 </div>
               )}
@@ -221,8 +248,8 @@ export default function LiffOrderPage() {
                 </span>
               </div>
             </div>
-            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 text-3xs font-black uppercase tracking-wider rounded-xl">
-              เชื่อมต่อแล้ว
+            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-3xs font-black uppercase tracking-wider rounded-xl">
+              {isMockMode ? "โหมดพัฒนา / MOCK" : "เชื่อมต่อแล้ว"}
             </div>
           </div>
 
@@ -235,13 +262,13 @@ export default function LiffOrderPage() {
 
           {/* Success Screen */}
           {orderStatus === "success" && createdOrder && (
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 shadow-xl text-center space-y-6 animate-scale-up">
-              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/5">
+            <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-850 rounded-3xl p-6 shadow-xl text-center space-y-6 animate-scale-up">
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/5">
                 <CheckCircle className="w-8 h-8" />
               </div>
               <div className="space-y-2">
                 <h3 className="font-extrabold text-lg text-zinc-150">สั่งอาหารสำเร็จแล้วค่ะ!</h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-450">
                   ออเดอร์หมายเลข <span className="font-bold text-amber-500 font-mono text-sm">#{createdOrder.orderId}</span> ได้ถูกยืนยันเข้าระบบเรียบร้อย
                 </p>
                 <p className="text-3xs text-zinc-500">
@@ -260,10 +287,10 @@ export default function LiffOrderPage() {
               </div>
               <button
                 onClick={() => {
-                  const liff = (window as any).liff;
-                  if (liff && liff.isInClient()) liff.closeWindow();
+                  const globalLiff = (window as unknown as { liff?: ILiff }).liff;
+                  if (globalLiff && globalLiff.isInClient()) globalLiff.closeWindow();
                 }}
-                className="w-full bg-zinc-800 hover:bg-zinc-750 border border-zinc-750 text-zinc-200 py-3.5 rounded-2xl text-xs font-bold transition-all"
+                className="w-full bg-zinc-800 hover:bg-zinc-750 border border-zinc-750 text-zinc-200 py-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer"
               >
                 เสร็จสิ้น / ปิดหน้าต่างนี้
               </button>
@@ -282,7 +309,7 @@ export default function LiffOrderPage() {
 
                   {loadingMenus ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
-                      <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
                       <p className="text-zinc-500 text-3xs">กำลังดึงรายการเมนู...</p>
                     </div>
                   ) : menus.length === 0 ? (
@@ -297,7 +324,7 @@ export default function LiffOrderPage() {
                           <div
                             key={menu._id}
                             onClick={() => handleSelectMenu(menu)}
-                            className="bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-850 hover:border-zinc-750 rounded-3xl p-4 flex gap-4 cursor-pointer transition-all duration-200 group active:scale-[0.99] shadow-md shadow-zinc-950/20"
+                            className="bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-850 hover:border-amber-500/20 rounded-3xl p-4 flex gap-4 cursor-pointer transition-all duration-300 group active:scale-[0.99] shadow-md shadow-zinc-950/20"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -307,13 +334,13 @@ export default function LiffOrderPage() {
                             />
                             <div className="flex-1 flex flex-col justify-between py-0.5">
                               <div>
-                                <h4 className="font-extrabold text-xs text-zinc-200 group-hover:text-indigo-400 transition-colors flex justify-between items-center">
+                                <h4 className="font-extrabold text-xs text-zinc-200 group-hover:text-amber-400 transition-colors flex justify-between items-center">
                                   <span>{menu.name}</span>
                                   <span className="font-black text-amber-500 text-3xs tracking-tighter">฿{menu.price}</span>
                                 </h4>
                                 <p className="text-3xs text-zinc-500 mt-1 line-clamp-2">{menu.description || "สูตรหอมฟูกรอบกลมกล่อม เสิร์ฟร้อนฉุย"}</p>
                               </div>
-                              <div className="flex justify-between items-center text-3xs text-indigo-400 font-bold mt-2">
+                              <div className="flex justify-between items-center text-3xs text-amber-400 font-bold mt-2">
                                 <span>ตัวเลือกปรับแต่งได้ {menu.options.length} หัวข้อ</span>
                                 <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                               </div>
@@ -326,7 +353,7 @@ export default function LiffOrderPage() {
                 </div>
               ) : (
                 /* Menu Customization & Ordering Form */
-                <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-850 rounded-3xl overflow-hidden shadow-xl animate-fade-in flex flex-col justify-between">
+                <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-850 rounded-3xl overflow-hidden shadow-xl animate-fade-in flex flex-col justify-between">
                   
                   {/* Banner */}
                   <div className="relative aspect-[20/11] bg-zinc-950">
@@ -338,7 +365,7 @@ export default function LiffOrderPage() {
                     />
                     <button
                       onClick={() => setSelectedMenu(null)}
-                      className="absolute top-4 left-4 px-3 py-1.5 bg-zinc-950/80 backdrop-blur-md border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 text-3xs font-extrabold rounded-xl transition-all"
+                      className="absolute top-4 left-4 px-3 py-1.5 bg-zinc-950/80 backdrop-blur-md border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 text-3xs font-extrabold rounded-xl transition-all cursor-pointer"
                     >
                       ← กลับหน้ารวม
                     </button>
@@ -350,7 +377,7 @@ export default function LiffOrderPage() {
                   <form onSubmit={handlePlaceOrder} className="p-6 space-y-6">
                     {/* Details */}
                     <div className="space-y-1">
-                      <h3 className="font-extrabold text-md text-zinc-100">{selectedMenu.name}</h3>
+                      <h3 className="font-extrabold text-md text-zinc-150">{selectedMenu.name}</h3>
                       <p className="text-2xs text-zinc-450">{selectedMenu.description || "ไข่เจียวปรุงพิเศษแสนอร่อย"}</p>
                     </div>
 
@@ -372,9 +399,9 @@ export default function LiffOrderPage() {
                                     key={choice.name}
                                     type="button"
                                     onClick={() => handleOptionChange(opt.label, choice.name, choice.priceAdded)}
-                                    className={`px-3 py-2.5 rounded-xl text-3xs font-bold transition-all border text-left flex justify-between items-center ${
+                                    className={`px-3 py-2.5 rounded-xl text-3xs font-bold transition-all border text-left flex justify-between items-center cursor-pointer ${
                                       isSelected
-                                        ? "bg-indigo-600/10 border-indigo-500 text-indigo-400 shadow-inner"
+                                        ? "bg-amber-500/10 border-amber-500 text-amber-400 shadow-inner"
                                         : "bg-zinc-950/30 border-zinc-850 text-zinc-400 hover:text-zinc-200"
                                     }`}
                                   >
@@ -403,7 +430,7 @@ export default function LiffOrderPage() {
                             type="button"
                             disabled={quantity <= 1}
                             onClick={() => setQuantity(quantity - 1)}
-                            className="w-8.5 h-8.5 bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-400 rounded-xl flex items-center justify-center font-bold transition-all"
+                            className="w-8.5 h-8.5 bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-400 rounded-xl flex items-center justify-center font-bold transition-all cursor-pointer"
                           >
                             -
                           </button>
@@ -411,7 +438,7 @@ export default function LiffOrderPage() {
                           <button
                             type="button"
                             onClick={() => setQuantity(quantity + 1)}
-                            className="w-8.5 h-8.5 bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 text-zinc-400 rounded-xl flex items-center justify-center font-bold transition-all"
+                            className="w-8.5 h-8.5 bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 text-zinc-400 rounded-xl flex items-center justify-center font-bold transition-all cursor-pointer"
                           >
                             +
                           </button>
@@ -427,9 +454,9 @@ export default function LiffOrderPage() {
                           <button
                             type="button"
                             onClick={() => setDeliveryAddress("รับที่ร้าน")}
-                            className={`py-2.5 rounded-xl text-3xs font-bold border transition-all ${
+                            className={`py-2.5 rounded-xl text-3xs font-bold border transition-all cursor-pointer ${
                               deliveryAddress === "รับที่ร้าน"
-                                ? "bg-indigo-650/10 border-indigo-500 text-indigo-400 shadow-inner"
+                                ? "bg-amber-500/10 border-amber-500 text-amber-400 shadow-inner"
                                 : "bg-zinc-950/30 border-zinc-850 text-zinc-400"
                             }`}
                           >
@@ -438,9 +465,9 @@ export default function LiffOrderPage() {
                           <button
                             type="button"
                             onClick={() => setDeliveryAddress("จัดส่งที่บ้าน")}
-                            className={`py-2.5 rounded-xl text-3xs font-bold border transition-all ${
+                            className={`py-2.5 rounded-xl text-3xs font-bold border transition-all cursor-pointer ${
                               deliveryAddress !== "รับที่ร้าน"
-                                ? "bg-indigo-650/10 border-indigo-500 text-indigo-400 shadow-inner"
+                                ? "bg-amber-500/10 border-amber-500 text-amber-400 shadow-inner"
                                 : "bg-zinc-950/30 border-zinc-850 text-zinc-400"
                             }`}
                           >
@@ -455,7 +482,7 @@ export default function LiffOrderPage() {
                             value={deliveryAddress === "จัดส่งที่บ้าน" ? "" : deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
                             placeholder="ป้อนรายละเอียดที่อยู่จัดส่งโดยย่อ..."
-                            className="w-full bg-zinc-950/40 border border-zinc-850 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-2.5 text-3xs text-zinc-300 placeholder-zinc-700 mt-2"
+                            className="w-full bg-zinc-950/40 border border-zinc-850 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 text-3xs text-zinc-300 placeholder-zinc-700 mt-2"
                           />
                         )}
                       </div>
@@ -470,7 +497,7 @@ export default function LiffOrderPage() {
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
                           placeholder="เช่น ขอไข่เจียวแบบแห้งกรอบๆ, ไม่ใส่กระเทียมเจียว..."
-                          className="w-full bg-zinc-950/40 border border-zinc-850 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-2.5 text-3xs text-zinc-300 placeholder-zinc-700"
+                          className="w-full bg-zinc-950/40 border border-zinc-850 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 text-3xs text-zinc-300 placeholder-zinc-700"
                         />
                       </div>
                     </div>
@@ -493,9 +520,9 @@ export default function LiffOrderPage() {
                       <button
                         type="submit"
                         disabled={orderStatus === "submitting" || !profile}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl py-4 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 text-zinc-950 font-black rounded-2xl py-4 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 active:scale-[0.98] cursor-pointer"
                       >
-                        <ShoppingBag className="w-5 h-5 animate-pulse" />
+                        <ShoppingBag className="w-5 h-5" />
                         <span>{orderStatus === "submitting" ? "กำลังประมวลผลสั่งซื้อ..." : "ส่งคำสั่งซื้อ (COD)"}</span>
                       </button>
                     </div>
