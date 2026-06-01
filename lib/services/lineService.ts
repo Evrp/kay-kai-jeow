@@ -24,7 +24,7 @@ export function verifyLineSignature(body: string, signature: string): boolean {
 /**
  * Sends a reply message to LINE using replyToken
  */
-export async function replyMessage(replyToken: string, messages: any[]): Promise<void> {
+export async function replyMessage(replyToken: string, messages: Record<string, unknown>[]): Promise<void> {
   if (!LINE_CHANNEL_ACCESS_TOKEN) {
     console.error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
     return;
@@ -52,7 +52,7 @@ export async function replyMessage(replyToken: string, messages: any[]): Promise
 /**
  * Sends a push message to a specific LINE user ID
  */
-export async function pushMessage(to: string, messages: any[]): Promise<void> {
+export async function pushMessage(to: string, messages: Record<string, unknown>[]): Promise<void> {
   if (!LINE_CHANNEL_ACCESS_TOKEN) {
     console.error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
     return;
@@ -80,7 +80,7 @@ export async function pushMessage(to: string, messages: any[]): Promise<void> {
 /**
  * Helper to construct a beautiful Flex Message Carousel of available menus
  */
-export function menuFlexMessage(menus: IMenu[]): any {
+export function menuFlexMessage(menus: IMenu[]): Record<string, unknown> {
   if (menus.length === 0) {
     return {
       type: "text",
@@ -188,13 +188,13 @@ export function menuFlexMessage(menus: IMenu[]): any {
 /**
  * Constructs a Flex Message summarizing the order details and asking for confirmation
  */
-export function orderConfirmFlexMessage(order: IOrder): any {
+export function orderConfirmFlexMessage(order: IOrder): Record<string, unknown> {
   const itemContents = order.items.map((item) => {
     const optionsText = item.selectedOptions
       .map((opt) => `${opt.label}: ${opt.choice}`)
       .join(", ");
     
-    const details = [
+    const details: Record<string, unknown>[] = [
       {
         type: "text",
         text: `${item.name} x${item.quantity}`,
@@ -210,7 +210,7 @@ export function orderConfirmFlexMessage(order: IOrder): any {
         text: `(${optionsText})`,
         color: "#6B7280",
         size: "xs",
-      } as any);
+      });
     }
 
     return {
@@ -429,3 +429,173 @@ export async function pushNewOrderNotificationToOwner(order: IOrder): Promise<vo
 
   await pushMessage(ownerId, [message]);
 }
+
+/**
+ * Constructs a beautiful Flex Message welcoming the user and explaining how to order
+ */
+export function welcomeFlexMessage(): Record<string, unknown> {
+  return {
+    type: "flex",
+    altText: "ยินดีต้อนรับสู่เก๋ไก๋เจียว 🍳✨",
+    contents: {
+      type: "bubble",
+      hero: {
+        type: "image",
+        url: "https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=600&q=80",
+        size: "full",
+        aspectRatio: "20:13",
+        aspectMode: "cover",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "ยินดีต้อนรับสู่ร้านเก๋ไก๋เจียว! 🍳✨",
+            weight: "bold",
+            size: "xl",
+            color: "#1F2937",
+            align: "center",
+          },
+          {
+            type: "text",
+            text: "ไข่เจียวปรุงสดใหม่ ร้อนๆ ส่งตรงถึงมือคุณ",
+            size: "sm",
+            color: "#6B7280",
+            align: "center",
+            margin: "xs",
+          },
+          {
+            type: "separator",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: "👇 วิธีการใช้งานและสั่งซื้ออาหาร",
+            weight: "bold",
+            size: "md",
+            color: "#374151",
+            margin: "md",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "md",
+            spacing: "sm",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                spacing: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "1️⃣",
+                    size: "md",
+                    flex: 0,
+                  },
+                  {
+                    type: "text",
+                    text: "พิมพ์ 'สั่ง' หรือ 'เมนู' เพื่อเลือกดูเมนูไข่เจียวแสนอร่อย",
+                    size: "sm",
+                    color: "#4B5563",
+                    wrap: true,
+                  },
+                ],
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                spacing: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "2️⃣",
+                    size: "md",
+                    flex: 0,
+                  },
+                  {
+                    type: "text",
+                    text: "เลือกเมนูที่ต้องการ แล้วกดปุ่ม 'สั่งเลย' เพื่อตรวจสอบรายการสั่งซื้อ",
+                    size: "sm",
+                    color: "#4B5563",
+                    wrap: true,
+                  },
+                ],
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                spacing: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "3️⃣",
+                    size: "md",
+                    flex: 0,
+                  },
+                  {
+                    type: "text",
+                    text: "กดยืนยันออเดอร์ เพื่อส่งข้อมูลไปปรุงสดๆ ทันที!",
+                    size: "sm",
+                    color: "#4B5563",
+                    wrap: true,
+                  },
+                ],
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                spacing: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "4️⃣",
+                    size: "md",
+                    flex: 0,
+                  },
+                  {
+                    type: "text",
+                    text: "พิมพ์ 'ดูออเดอร์' เพื่อเช็คสถานะการปรุงอาหารและการจัดส่งได้ตลอดเวลา",
+                    size: "sm",
+                    color: "#4B5563",
+                    wrap: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#F59E0B",
+            action: {
+              type: "message",
+              label: "เลือกเมนูอาหาร 🍳",
+              text: "สั่งอาหาร",
+            },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            color: "#10B981",
+            action: {
+              type: "message",
+              label: "ตรวจสอบสถานะออเดอร์ 📝",
+              text: "ดูออเดอร์",
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+

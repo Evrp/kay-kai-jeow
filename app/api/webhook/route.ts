@@ -4,6 +4,7 @@ import {
   replyMessage,
   menuFlexMessage,
   orderConfirmFlexMessage,
+  welcomeFlexMessage,
 } from "@/lib/services/lineService";
 import { getAvailableMenus, getMenuById } from "@/lib/services/menuService";
 import {
@@ -12,6 +13,8 @@ import {
   updateOrderStatus,
   getOrderById,
 } from "@/lib/services/orderService";
+import { connectToDatabase } from "@/lib/db";
+import Customer from "@/lib/models/Customer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +48,11 @@ export async function POST(req: NextRequest) {
       if (event.type === "postback") {
         const data = event.postback.data;
         await handlePostback(data, event.replyToken, lineUserId);
+      }
+
+      // Handle Follow Events (Add Friend / Unblock)
+      if (event.type === "follow") {
+        await handleFollow(event.replyToken, lineUserId);
       }
     }
 
@@ -261,5 +269,56 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
       ]);
     }
     return;
+  }
+}
+
+/**
+ * Handles LINE Follow (Add Friend / Unblock) Event
+ */
+async function handleFollow(replyToken: string, lineUserId: string) {
+  await connectToDatabase();
+
+  // Check if this customer already exists and has welcomeSent set to true
+  const customer = await Customer.findOne({ lineUserId });
+
+  if (customer && customer.welcomeSent) {
+    // Bypass: Already received welcome/instructions before
+    console.log(`Bypassing welcome message for existing user: ${lineUserId}`);
+    return;
+  }
+
+  // Fetch user profile display name to create/update customer record
+  let displayName = "ลูกค้า LINE";
+  try {
+    const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const response = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (response.ok) {
+      const profile = await response.json();
+      displayName = profile.displayName;
+    }
+  } catch (err) {
+    console.error("Failed to fetch customer profile details for follow:", err);
+  }
+
+  // Send the premium welcome Flex Message
+  const flexMessage = welcomeFlexMessage();
+  await replyMessage(replyToken, [flexMessage]);
+
+  // Save or update customer record, setting welcomeSent to true
+  if (customer) {
+    customer.welcomeSent = true;
+    if (displayName !== "ลูกค้า LINE") {
+      customer.displayName = displayName;
+    }
+    await customer.save();
+  } else {
+    await Customer.create({
+      lineUserId,
+      displayName,
+      welcomeSent: true,
+      totalOrders: 0,
+    });
   }
 }

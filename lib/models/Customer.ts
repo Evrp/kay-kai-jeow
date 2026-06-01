@@ -6,6 +6,7 @@ export interface ICustomer extends Document {
   pictureUrl?: string;
   totalOrders: number;
   lastOrderAt?: Date;
+  welcomeSent: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +18,7 @@ const CustomerSchema = new Schema<ICustomer>(
     pictureUrl: { type: String },
     totalOrders: { type: Number, default: 0 },
     lastOrderAt: { type: Date },
+    welcomeSent: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
