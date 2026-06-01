@@ -10,6 +10,7 @@ import {
   createOrder,
   getLatestOrderByUser,
   updateOrderStatus,
+  getOrderById,
 } from "@/lib/services/orderService";
 
 export async function POST(req: NextRequest) {
@@ -183,6 +184,29 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
     const orderId = params.get("orderId");
     if (!orderId) return;
 
+    const order = await getOrderById(orderId);
+    if (!order) return;
+
+    // Validate that order is in 'pending' status
+    if (order.status !== "pending") {
+      if (order.status === "cancelled") {
+        await replyMessage(replyToken, [
+          {
+            type: "text",
+            text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} นี้ถูกยกเลิกไปแล้ว หากต้องการสั่งใหม่กรุณาพิมพ์ 'สั่ง' หรือ 'เมนู' ค่ะ`,
+          },
+        ]);
+      } else {
+        await replyMessage(replyToken, [
+          {
+            type: "text",
+            text: `ออเดอร์ #${order.orderId} ได้รับการยืนยันแล้วค่ะ คุณสามารถพิมพ์ 'ดูออเดอร์' เพื่อเช็คสถานะล่าสุดได้เลยนะคะ 😊`,
+          },
+        ]);
+      }
+      return;
+    }
+
     const updatedOrder = await updateOrderStatus(orderId, "confirmed");
 
     if (updatedOrder) {
@@ -200,6 +224,29 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
   if (action === "cancel_order") {
     const orderId = params.get("orderId");
     if (!orderId) return;
+
+    const order = await getOrderById(orderId);
+    if (!order) return;
+
+    // Validate that order is in 'pending' status
+    if (order.status !== "pending") {
+      if (order.status === "cancelled") {
+        await replyMessage(replyToken, [
+          {
+            type: "text",
+            text: `ออเดอร์ #${order.orderId} นี้ถูกยกเลิกเรียบร้อยแล้วค่ะ`,
+          },
+        ]);
+      } else {
+        await replyMessage(replyToken, [
+          {
+            type: "text",
+            text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} ได้รับการยืนยันหรืออยู่ในระหว่างดำเนินการแล้ว จึงไม่สามารถยกเลิกได้แล้วค่ะ หากมีข้อสงสัยเพิ่มเติมกรุณาแจ้งแอดมินนะคะ`,
+          },
+        ]);
+      }
+      return;
+    }
 
     const updatedOrder = await updateOrderStatus(orderId, "cancelled");
 
