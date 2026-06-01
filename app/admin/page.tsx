@@ -109,14 +109,20 @@ export default function AdminOverview() {
   }, []);
 
   useEffect(() => {
-    fetchDashboardData();
+    // Break the synchronous render cycle to comply with strict ESLint rules
+    const initTimer = setTimeout(() => {
+      fetchDashboardData();
+    }, 0);
 
     // 30 Seconds real-time polling
     const interval = setInterval(() => {
       fetchDashboardData(true);
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(interval);
+    };
   }, [fetchDashboardData]);
 
   const handleAdvanceStatus = async (id: string, currentStatus: string) => {
@@ -186,37 +192,36 @@ export default function AdminOverview() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-zinc-400 text-sm">กำลังโหลดข้อมูลแดชบอร์ด...</p>
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-zinc-500 text-xs font-semibold">กำลังโหลดข้อมูลแดชบอร์ด...</p>
       </div>
     );
   }
-
   return (
     <div className="space-y-10">
       {/* Header and Quick Refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 to-zinc-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             ภาพรวมวันนี้
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            ข้อมูลการสั่งซื้อและลำดับคิวประจำวัน อัปเดตอัตโนมัติทุก 30 วินาที
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            ข้อมูลการสั่งซื้อและลำดับคิวประจำวัน อัปเดตอัตโนมัติทุก 30 วินาที 🍳
           </p>
         </div>
 
         <button
           onClick={() => fetchDashboardData(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 border border-zinc-850 hover:border-zinc-700 hover:bg-zinc-850/80 active:scale-95 text-xs text-zinc-300 font-semibold rounded-2xl transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4.5 py-3 bg-zinc-900/60 border border-zinc-850 hover:border-amber-500/20 hover:bg-zinc-900 active:scale-95 text-2xs text-zinc-300 font-bold rounded-2xl transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-black/20"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-amber-500" : "text-zinc-400"}`} />
           <span>{refreshing ? "กำลังโหลด..." : "รีเฟรชข้อมูล"}</span>
         </button>
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 px-5 py-4 bg-red-950/20 border border-red-900/40 text-red-400 rounded-2xl text-sm">
+        <div className="flex items-center gap-3 px-5 py-4 bg-red-950/20 border border-red-900/40 text-red-400 rounded-2xl text-xs">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -225,76 +230,76 @@ export default function AdminOverview() {
       {/* Grid Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Sales Card */}
-        <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-850 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-zinc-750 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full blur-xl group-hover:bg-amber-500/10 transition-all duration-300" />
+        <div className="bg-zinc-900/40 backdrop-blur-2xl border border-zinc-900 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-amber-500/10 transition-all duration-500">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full blur-xl group-hover:bg-amber-500/10 transition-all duration-550" />
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
               ยอดขายวันนี้
             </span>
-            <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/5 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 bg-amber-550/10 border border-amber-550/20 text-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-550/5 group-hover:scale-105 transition-transform duration-300">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black tracking-tight text-amber-500">
+            <span className="text-3xl font-black tracking-tight text-amber-500 bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
               ฿{stats.todaySales.toLocaleString()}
             </span>
-            <span className="text-xs text-zinc-500">บาท</span>
+            <span className="text-3xs text-zinc-500 font-bold uppercase">บาท</span>
           </div>
-          <p className="text-2xs text-zinc-500 mt-2 font-medium">เฉพาะสถานะยืนยันและจัดส่งเสร็จสิ้น</p>
+          <p className="text-[10px] text-zinc-550 mt-2 font-medium">เฉพาะสถานะยืนยันและจัดส่งเสร็จสิ้น</p>
         </div>
 
         {/* Total Orders Card */}
-        <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-850 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-zinc-750 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full blur-xl group-hover:bg-indigo-500/10 transition-all duration-300" />
+        <div className="bg-zinc-900/40 backdrop-blur-2xl border border-zinc-900 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-orange-500/10 transition-all duration-500">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-bl-full blur-xl group-hover:bg-orange-500/10 transition-all duration-550" />
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
               ออเดอร์ทั้งหมดวันนี้
             </span>
-            <div className="w-10 h-10 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/5 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/5 group-hover:scale-105 transition-transform duration-300">
               <ShoppingBag className="w-5 h-5" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black tracking-tight text-indigo-400">
+            <span className="text-3xl font-black tracking-tight text-orange-400 bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
               {stats.todayOrdersCount}
             </span>
-            <span className="text-xs text-zinc-500">ออเดอร์</span>
+            <span className="text-3xs text-zinc-500 font-bold uppercase">ออเดอร์</span>
           </div>
-          <p className="text-2xs text-zinc-500 mt-2 font-medium">ไม่นับรวมออเดอร์ที่กดยกเลิก</p>
+          <p className="text-[10px] text-zinc-550 mt-2 font-medium">ไม่นับรวมออเดอร์ที่กดยกเลิก</p>
         </div>
 
         {/* Active Queue Card */}
-        <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-850 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-zinc-750 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-300" />
+        <div className="bg-zinc-900/40 backdrop-blur-2xl border border-zinc-900 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-yellow-500/10 transition-all duration-500">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-400/5 rounded-bl-full blur-xl group-hover:bg-yellow-400/10 transition-all duration-550" />
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
               คิวที่ต้องปรุงในร้าน
             </span>
-            <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/5 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-400/5 group-hover:scale-105 transition-transform duration-300">
               <Clock className="w-5 h-5 animate-pulse" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black tracking-tight text-emerald-400">
+            <span className="text-3xl font-black tracking-tight text-yellow-400 bg-gradient-to-r from-yellow-400 to-amber-300 bg-clip-text text-transparent">
               {stats.pendingCount}
             </span>
-            <span className="text-xs text-zinc-500">รายการ</span>
+            <span className="text-3xs text-zinc-500 font-bold uppercase">รายการ</span>
           </div>
-          <p className="text-2xs text-zinc-500 mt-2 font-medium">สถานะ รอคอนเฟิร์ม / ยืนยัน / กำลังทำ</p>
+          <p className="text-[10px] text-zinc-550 mt-2 font-medium">สถานะ รอคอนเฟิร์ม / ยืนยัน / กำลังทำ</p>
         </div>
       </div>
 
       {/* Real-time Order Queue Table */}
-      <div className="bg-zinc-900/30 backdrop-blur-md border border-zinc-850 rounded-3xl shadow-xl overflow-hidden">
-        <div className="px-6 py-5 border-b border-zinc-850 flex items-center justify-between">
+      <div className="bg-zinc-900/20 backdrop-blur-2xl border border-zinc-900 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden">
+        <div className="px-6 py-5 border-b border-zinc-900 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-md text-zinc-100">รายการคิวเตรียมอาหาร (Real-time Queue)</h3>
-            <p className="text-2xs text-zinc-500 mt-0.5">จัดการคิวทำอาหารและจัดส่งแบบเรียลไทม์</p>
+            <h3 className="font-bold text-sm text-zinc-100">รายการคิวเตรียมอาหาร (Real-time Queue)</h3>
+            <p className="text-[10px] text-zinc-500 mt-0.5">จัดการคิวทำอาหารและจัดส่งแบบเรียลไทม์</p>
           </div>
           <Link
             href="/admin/orders"
-            className="text-2xs text-indigo-400 hover:text-indigo-300 font-bold transition-colors"
+            className="text-2xs text-amber-400 hover:text-amber-300 font-bold transition-all duration-300"
           >
             ดูประวัติทั้งหมด →
           </Link>
@@ -302,15 +307,15 @@ export default function AdminOverview() {
 
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
-            <CheckCircle2 className="w-12 h-12 text-zinc-700 mb-3" />
-            <p className="font-medium text-sm">ไม่มีคิวที่ค้างรอในขณะนี้!</p>
-            <p className="text-xs text-zinc-650 mt-1">ยินดีด้วยค่ะ ออเดอร์ทั้งหมดถูกจัดส่งแล้ว</p>
+            <CheckCircle2 className="w-12 h-12 text-zinc-800 mb-3" />
+            <p className="font-bold text-xs text-zinc-400">ไม่มีคิวที่ค้างรอในขณะนี้!</p>
+            <p className="text-2xs text-zinc-600 mt-1">ยินดีด้วยค่ะ ออเดอร์ทั้งหมดได้รับการจัดส่งเสร็จสิ้นแล้ว</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-zinc-850 bg-zinc-900/40 text-2xs uppercase tracking-wider text-zinc-500 font-bold">
+                <tr className="border-b border-zinc-900 bg-zinc-950/20 text-[10px] uppercase tracking-widest text-zinc-550 font-bold">
                   <th className="px-6 py-4">รหัสออเดอร์</th>
                   <th className="px-6 py-4">ลูกค้า</th>
                   <th className="px-6 py-4">รายการอาหาร</th>
@@ -319,7 +324,7 @@ export default function AdminOverview() {
                   <th className="px-6 py-4 text-center">จัดการด่วน</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-850/40 text-xs">
+              <tbody className="divide-y divide-zinc-900/60 text-xs">
                 {orders.map((o) => {
                   const labelMap: Record<string, string> = {
                     pending: "กดยืนยันออเดอร์",
@@ -328,17 +333,17 @@ export default function AdminOverview() {
                   };
 
                   const btnColorMap: Record<string, string> = {
-                    pending: "bg-amber-600 hover:bg-amber-500 shadow-amber-600/10",
-                    confirmed: "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/10",
-                    preparing: "bg-teal-600 hover:bg-teal-500 shadow-teal-600/10",
+                    pending: "bg-gradient-to-r from-amber-550 to-orange-550 hover:from-amber-500 hover:to-orange-500 shadow-amber-550/15 text-zinc-950 font-extrabold",
+                    confirmed: "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-450 hover:to-red-450 shadow-orange-500/15 text-white font-bold",
+                    preparing: "bg-gradient-to-r from-emerald-550 to-teal-550 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-550/15 text-zinc-950 font-extrabold",
                   };
 
                   return (
                     <tr
                       key={o._id}
-                      className="hover:bg-zinc-800/10 transition-colors group duration-150"
+                      className="hover:bg-zinc-900/30 transition-all duration-300 group"
                     >
-                      <td className="px-6 py-5 font-bold text-zinc-300 font-mono tracking-tight">
+                      <td className="px-6 py-5 font-bold text-zinc-300 font-mono tracking-tight text-xs">
                         {o.orderId}
                       </td>
                       <td className="px-6 py-5 font-semibold text-zinc-200">
@@ -346,12 +351,12 @@ export default function AdminOverview() {
                       </td>
                       <td className="px-6 py-5 text-zinc-450">
                         {o.items.map((item, idx) => (
-                          <div key={idx} className="font-medium text-zinc-300">
-                            {item.name} <span className="text-zinc-500">x{item.quantity}</span>
+                          <div key={idx} className="font-semibold text-zinc-300">
+                            {item.name} <span className="text-zinc-550 font-medium">x{item.quantity}</span>
                           </div>
                         ))}
                       </td>
-                      <td className="px-6 py-5 font-bold text-amber-500 text-center">
+                      <td className="px-6 py-5 font-extrabold text-amber-500 text-center">
                         ฿{o.totalPrice}
                       </td>
                       <td className="px-6 py-5 text-center">{getStatusBadge(o.status)}</td>
@@ -359,8 +364,8 @@ export default function AdminOverview() {
                         <div className="flex items-center justify-center gap-3">
                           <button
                             onClick={() => handleAdvanceStatus(o._id, o.status)}
-                            className={`px-4 py-2 text-2xs font-bold text-white rounded-xl shadow-md transition-all active:scale-95 duration-200 ${
-                              btnColorMap[o.status] || "bg-zinc-700"
+                            className={`px-4.5 py-2.5 text-[10px] rounded-xl shadow-md transition-all active:scale-95 duration-300 cursor-pointer ${
+                              btnColorMap[o.status] || "bg-zinc-700 text-white"
                             }`}
                           >
                             {labelMap[o.status] || "ความคืบหน้า"}
@@ -368,7 +373,7 @@ export default function AdminOverview() {
                           
                           <Link
                             href="/admin/orders"
-                            className="p-2 bg-zinc-800/40 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-300 rounded-xl transition-all"
+                            className="p-2.5 bg-zinc-900 border border-zinc-850 hover:bg-zinc-850 hover:border-zinc-750 text-zinc-500 hover:text-zinc-300 rounded-xl transition-all duration-300"
                             title="ดูออเดอร์ในหน้าจัดการ"
                           >
                             <Eye className="w-4 h-4" />

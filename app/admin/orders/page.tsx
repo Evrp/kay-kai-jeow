@@ -4,14 +4,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Search,
   SlidersHorizontal,
-  TrendingDown,
-  Clock,
-  CheckCircle,
-  XCircle,
   Eye,
   ChevronDown,
   ShoppingBag,
-  HelpCircle,
 } from "lucide-react";
 
 interface ISelectedOption {
@@ -55,7 +50,6 @@ const statusOptions = [
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<IOrder[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -92,30 +86,29 @@ export default function AdminOrders() {
   }, []);
 
   useEffect(() => {
-    fetchOrders();
+    const timer = setTimeout(() => {
+      fetchOrders();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchOrders]);
 
-  // Apply filters client-side
-  useEffect(() => {
-    let result = [...orders];
-
+  // Derived state: Apply filters during render
+  const filteredOrders = orders.filter((o) => {
     // Status filter
-    if (selectedStatus !== "all") {
-      result = result.filter((o) => o.status === selectedStatus);
+    if (selectedStatus !== "all" && o.status !== selectedStatus) {
+      return false;
     }
 
     // Search query filter (matches customer name or order ID)
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (o) =>
-          o.orderId?.toLowerCase().includes(query) ||
-          o.customerName?.toLowerCase().includes(query)
-      );
+      const matchId = o.orderId?.toLowerCase().includes(query) ?? false;
+      const matchName = o.customerName?.toLowerCase().includes(query) ?? false;
+      return matchId || matchName;
     }
 
-    setFilteredOrders(result);
-  }, [orders, selectedStatus, searchQuery]);
+    return true;
+  });
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
@@ -133,14 +126,16 @@ export default function AdminOrders() {
         throw new Error("Failed to update status");
       }
 
+      const nextStatus = newStatus as IOrder["status"];
+
       // Update locally immediately to avoid full refresh loading spinner
       setOrders((prevOrders) =>
-        prevOrders.map((o) => (o._id === id ? { ...o, status: newStatus as any } : o))
+        prevOrders.map((o) => (o._id === id ? { ...o, status: nextStatus } : o))
       );
 
       // Also update open details modal if open
       if (activeOrderModal && activeOrderModal._id === id) {
-        setActiveOrderModal((prev) => (prev ? { ...prev, status: newStatus as any } : null));
+        setActiveOrderModal((prev) => (prev ? { ...prev, status: nextStatus } : null));
       }
     } catch (err) {
       console.error(err);
@@ -173,31 +168,32 @@ export default function AdminOrders() {
         prevOrders.map((o) => (o._id === id ? { ...o, paymentStatus: newPayStatus } : o))
       );
 
+      // Also update open details modal if open
       if (activeOrderModal && activeOrderModal._id === id) {
         setActiveOrderModal((prev) => (prev ? { ...prev, paymentStatus: newPayStatus } : null));
       }
     } catch (err) {
       console.error(err);
-      alert("เกิดข้อผิดพลาด ไม่สามารถเปลี่ยนสถานะชำระเงินได้");
+      alert("เกิดข้อผิดพลาด ไม่สามารถเปลี่ยนสถานะการชำระเงินได้");
     }
   };
 
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case "pending":
-        return { label: "รอการยืนยัน", style: "bg-amber-500/10 text-amber-400 border border-amber-500/20" };
+        return { label: "รอการยืนยัน ⏳", style: "bg-amber-500/10 text-amber-400 border border-amber-500/20" };
       case "confirmed":
-        return { label: "ยืนยันแล้ว", style: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" };
+        return { label: "ยืนยันแล้ว ✅", style: "bg-orange-500/10 text-orange-400 border border-orange-500/20" };
       case "preparing":
-        return { label: "กำลังทำอาหาร", style: "bg-teal-500/10 text-teal-400 border border-teal-500/20" };
+        return { label: "กำลังทำอาหาร 🍳", style: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" };
       case "ready":
-        return { label: "พร้อมเสิร์ฟ/พร้อมส่ง", style: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" };
+        return { label: "พร้อมจัดส่ง 📦", style: "bg-emerald-500/10 text-emerald-450 border border-emerald-500/20" };
       case "completed":
-        return { label: "เสร็จสิ้น", style: "bg-zinc-800 text-zinc-400 border border-zinc-700/50" };
+        return { label: "เสร็จสิ้น 🎉", style: "bg-zinc-900 border border-zinc-800 text-zinc-500" };
       case "cancelled":
-        return { label: "ยกเลิกแล้ว", style: "bg-red-500/10 text-red-400 border border-red-500/20" };
+        return { label: "ยกเลิกแล้ว ❌", style: "bg-red-500/10 text-red-400 border border-red-500/20" };
       default:
-        return { label: status, style: "bg-zinc-800 text-zinc-400" };
+        return { label: status, style: "bg-zinc-800 text-zinc-450" };
     }
   };
 
@@ -217,11 +213,11 @@ export default function AdminOrders() {
     <div className="space-y-10">
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 to-zinc-300 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
           จัดการออเดอร์ทั้งหมด
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">
-          ควบคุมและตรวจสอบสถานะออเดอร์ ความก้าวหน้าการทำอาหาร และการจัดส่ง
+        <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+          ควบคุมและตรวจสอบสถานะออเดอร์ ความก้าวหน้าการทำอาหาร และการจัดส่ง 🍳
         </p>
       </div>
 
@@ -229,13 +225,13 @@ export default function AdminOrders() {
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
         {/* Search */}
         <div className="relative w-full lg:w-96 group">
-          <Search className="w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors absolute left-4 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-zinc-500 group-focus-within:text-amber-500 transition-colors absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ค้นหาชื่อลูกค้า หรือ รหัสออเดอร์..."
-            className="w-full bg-zinc-900/50 border border-zinc-850 hover:border-zinc-750 focus:border-indigo-500 focus:outline-none rounded-2xl pl-11 pr-5 py-3.5 text-xs text-zinc-200 placeholder-zinc-555 transition-all"
+            className="w-full bg-zinc-900/50 border border-zinc-850 hover:border-zinc-750 focus:border-amber-500 focus:outline-none rounded-2xl pl-11 pr-5 py-3.5 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
           />
         </div>
 
@@ -246,9 +242,9 @@ export default function AdminOrders() {
             <button
               key={opt.value}
               onClick={() => setSelectedStatus(opt.value)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-semibold shrink-0 transition-all border ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-semibold shrink-0 transition-all border cursor-pointer ${
                 selectedStatus === opt.value
-                  ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/10"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 border-transparent text-zinc-950 font-black shadow-lg shadow-amber-500/10"
                   : "bg-zinc-900/40 border-zinc-850 text-zinc-400 hover:text-zinc-200 hover:border-zinc-800"
               }`}
             >
@@ -261,25 +257,25 @@ export default function AdminOrders() {
       {/* Orders Table Container */}
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-400 text-xs">กำลังประมวลผลข้อมูล...</p>
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-zinc-500 text-xs font-semibold">กำลังประมวลผลข้อมูล...</p>
         </div>
       ) : error ? (
         <div className="flex items-center gap-3 px-5 py-4 bg-red-950/20 border border-red-900/40 text-red-400 rounded-2xl text-xs">
           <span>{error}</span>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-20 bg-zinc-900/10 border border-zinc-850 rounded-3xl text-center text-zinc-550">
+        <div className="flex flex-col items-center justify-center p-20 bg-zinc-900/10 border border-zinc-900 rounded-3xl text-center text-zinc-500">
           <ShoppingBag className="w-12 h-12 text-zinc-800 mb-4" />
-          <p className="font-semibold text-sm">ไม่พบรายการสั่งซื้อที่ตรงกับเงื่อนไข</p>
-          <p className="text-xs text-zinc-600 mt-1">ลองเปลี่ยนการค้นหาหรือกลุ่มตัวเลือกดูนะคะ</p>
+          <p className="font-bold text-xs text-zinc-400">ไม่พบรายการสั่งซื้อที่ตรงกับเงื่อนไข</p>
+          <p className="text-2xs text-zinc-650 mt-1">ลองเปลี่ยนการค้นหาหรือกลุ่มตัวเลือกดูนะคะ</p>
         </div>
       ) : (
-        <div className="bg-zinc-900/30 backdrop-blur-md border border-zinc-850 rounded-3xl shadow-xl overflow-hidden">
+        <div className="bg-zinc-900/20 backdrop-blur-2xl border border-zinc-900 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-zinc-850 bg-zinc-900/40 text-2xs uppercase tracking-wider text-zinc-500 font-bold">
+                <tr className="border-b border-zinc-900 bg-zinc-950/20 text-[10px] uppercase tracking-widest text-zinc-550 font-bold">
                   <th className="px-6 py-4">รหัสออเดอร์ / วันเวลา</th>
                   <th className="px-6 py-4">ข้อมูลลูกค้า</th>
                   <th className="px-6 py-4">รายการอาหาร</th>
@@ -290,24 +286,24 @@ export default function AdminOrders() {
                   <th className="px-6 py-4 text-center">ดูรายละเอียด</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-850/40 text-xs">
+              <tbody className="divide-y divide-zinc-900/60 text-xs">
                 {filteredOrders.map((o) => {
                   const statusInfo = getStatusDisplay(o.status);
                   return (
                     <tr
                       key={o._id}
-                      className="hover:bg-zinc-800/10 transition-colors duration-150"
+                      className="hover:bg-zinc-900/30 transition-all duration-300 group"
                     >
                       {/* ID and Date */}
                       <td className="px-6 py-5">
-                        <div className="font-bold text-zinc-200 font-mono tracking-tight">{o.orderId}</div>
-                        <div className="text-3xs text-zinc-500 mt-1">{formatDate(o.createdAt)}</div>
+                        <div className="font-bold text-zinc-200 font-mono tracking-tight text-xs">{o.orderId}</div>
+                        <div className="text-[10px] text-zinc-500 mt-1">{formatDate(o.createdAt)}</div>
                       </td>
 
                       {/* Customer */}
                       <td className="px-6 py-5">
                         <div className="font-semibold text-zinc-200">{o.customerName || "ลูกค้าทั่วไป"}</div>
-                        <div className="text-3xs text-zinc-500 mt-1 font-mono tracking-tighter max-w-[120px] truncate">
+                        <div className="text-[10px] text-zinc-550 mt-1 font-mono tracking-tighter max-w-[120px] truncate">
                           ID: {o.lineUserId}
                         </div>
                       </td>
@@ -316,8 +312,8 @@ export default function AdminOrders() {
                       <td className="px-6 py-5">
                         <div className="space-y-1 max-w-xs">
                           {o.items.map((item, idx) => (
-                            <div key={idx} className="font-medium text-zinc-300">
-                              {item.name} <span className="text-zinc-500 font-normal text-3xs">x{item.quantity}</span>
+                            <div key={idx} className="font-semibold text-zinc-300">
+                              {item.name} <span className="text-zinc-550 font-medium text-3xs">x{item.quantity}</span>
                             </div>
                           ))}
                         </div>
@@ -329,10 +325,10 @@ export default function AdminOrders() {
                           onClick={() =>
                             handleUpdatePaymentStatus(o._id, o.paymentStatus === "paid" ? "unpaid" : "paid")
                           }
-                          className={`inline-block px-2.5 py-1.5 rounded-xl font-bold cursor-pointer text-3xs transition-all border ${
+                          className={`inline-block px-2.5 py-1.5 rounded-xl font-bold cursor-pointer text-[10px] transition-all border ${
                             o.paymentStatus === "paid"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-red-500/10 text-red-400 border-red-500/20"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                              : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
                           }`}
                           title="คลิกเพื่อเปลี่ยนสถานะการชำระเงิน"
                         >
@@ -341,13 +337,13 @@ export default function AdminOrders() {
                       </td>
 
                       {/* Total Price */}
-                      <td className="px-6 py-5 font-bold text-amber-500 text-center">
+                      <td className="px-6 py-5 font-extrabold text-amber-500 text-center">
                         ฿{o.totalPrice}
                       </td>
 
                       {/* Status */}
                       <td className="px-6 py-5 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-2xs font-semibold ${statusInfo.style}`}>
+                        <span className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold ${statusInfo.style}`}>
                           {statusInfo.label}
                         </span>
                       </td>
@@ -358,7 +354,7 @@ export default function AdminOrders() {
                           <select
                             value={o.status}
                             onChange={(e) => handleUpdateStatus(o._id, e.target.value)}
-                            className="bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 px-3 py-2 text-2xs font-bold rounded-xl outline-none cursor-pointer transition-all appearance-none pr-8 relative"
+                            className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/20 text-zinc-300 px-3 py-2 text-3xs font-extrabold rounded-xl outline-none cursor-pointer transition-all appearance-none pr-8 relative"
                           >
                             <option value="pending">รอการยืนยัน</option>
                             <option value="confirmed">ยืนยันแล้ว</option>
@@ -367,7 +363,7 @@ export default function AdminOrders() {
                             <option value="completed">เสร็จสิ้น</option>
                             <option value="cancelled">ยกเลิก</option>
                           </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <ChevronDown className="w-3 h-3 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </td>
 
@@ -375,7 +371,7 @@ export default function AdminOrders() {
                       <td className="px-6 py-5 text-center">
                         <button
                           onClick={() => setActiveOrderModal(o)}
-                          className="p-2 bg-zinc-800/40 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 rounded-xl transition-all active:scale-95"
+                          className="p-2.5 bg-zinc-900 border border-zinc-850 hover:bg-zinc-850 hover:border-amber-550/20 text-zinc-500 hover:text-amber-400 rounded-xl transition-all active:scale-95 duration-300 cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -391,18 +387,18 @@ export default function AdminOrders() {
 
       {/* Order Details Sliding Glassmorphic Modal */}
       {activeOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/75 backdrop-blur-md">
           <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-6 relative overflow-hidden max-h-[90vh] flex flex-col justify-between">
             <div>
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-4 border-b border-zinc-850">
                 <div>
-                  <h3 className="font-bold text-md text-zinc-100">รายละเอียดออเดอร์</h3>
+                  <h3 className="font-extrabold text-sm text-zinc-150">รายละเอียดออเดอร์</h3>
                   <p className="text-3xs text-zinc-500 font-mono mt-0.5">ID: {activeOrderModal.orderId}</p>
                 </div>
                 <button
                   onClick={() => setActiveOrderModal(null)}
-                  className="px-3.5 py-2 bg-zinc-800 border border-zinc-750 hover:bg-zinc-750 text-zinc-400 hover:text-zinc-200 rounded-2xl text-xs font-bold transition-all"
+                  className="px-4 py-2.5 bg-zinc-800 border border-zinc-750 hover:bg-zinc-750 text-zinc-400 hover:text-zinc-200 rounded-2xl text-2xs font-bold transition-all cursor-pointer"
                 >
                   ปิดหน้าต่าง
                 </button>
@@ -411,15 +407,15 @@ export default function AdminOrders() {
               {/* Modal Body */}
               <div className="py-5 space-y-6 overflow-y-auto max-h-[50vh] pr-1">
                 {/* Status and Summary Header */}
-                <div className="flex justify-between items-center bg-zinc-950/50 p-4 border border-zinc-850 rounded-2xl">
+                <div className="flex justify-between items-center bg-zinc-950/40 p-4 border border-zinc-850 rounded-2xl">
                   <div>
-                    <span className="text-3xs text-zinc-550 block">สถานะปัจจุบัน</span>
+                    <span className="text-[10px] text-zinc-550 block font-bold">สถานะปัจจุบัน</span>
                     <span className="text-xs font-bold text-zinc-200 mt-1 block">
                       {getStatusDisplay(activeOrderModal.status).label}
                     </span>
                   </div>
                   <div>
-                    <span className="text-3xs text-zinc-550 block text-right">ยอดรวม</span>
+                    <span className="text-[10px] text-zinc-550 block text-right font-bold">ยอดรวม</span>
                     <span className="text-sm font-black text-amber-500 mt-1 block text-right">
                       ฿{activeOrderModal.totalPrice}
                     </span>
@@ -428,8 +424,8 @@ export default function AdminOrders() {
 
                 {/* Items list */}
                 <div className="space-y-3.5">
-                  <h4 className="text-2xs font-bold uppercase tracking-wider text-zinc-400">รายการสั่งซื้อ</h4>
-                  <div className="divide-y divide-zinc-850 bg-zinc-950/20 border border-zinc-850/60 rounded-2xl px-4 py-1">
+                  <h4 className="text-3xs font-extrabold uppercase tracking-widest text-zinc-500">รายการสั่งซื้อ</h4>
+                  <div className="divide-y divide-zinc-900/60 bg-zinc-950/20 border border-zinc-900 rounded-2xl px-4 py-1">
                     {activeOrderModal.items.map((item, idx) => {
                       const optionsText = item.selectedOptions
                         .map((opt) => `${opt.label}: ${opt.choice}`)
@@ -454,25 +450,25 @@ export default function AdminOrders() {
                 {/* Delivery and Notes Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <span className="text-3xs font-semibold text-zinc-500 uppercase tracking-widest block">
+                    <span className="text-3xs font-bold text-zinc-550 uppercase tracking-widest block">
                       ที่อยู่ / รูปแบบจัดส่ง
                     </span>
-                    <p className="text-xs text-zinc-300 bg-zinc-950/40 border border-zinc-850/50 rounded-2xl p-4.5 min-h-[60px]">
+                    <p className="text-2xs text-zinc-300 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4.5 min-h-[60px] leading-relaxed">
                       {activeOrderModal.deliveryAddress || "รับที่ร้าน"}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-3xs font-semibold text-zinc-500 uppercase tracking-widest block">
+                    <span className="text-3xs font-bold text-zinc-550 uppercase tracking-widest block">
                       หมายเหตุจากลูกค้า
                     </span>
-                    <p className="text-xs text-zinc-300 bg-zinc-950/40 border border-zinc-850/50 rounded-2xl p-4.5 min-h-[60px]">
+                    <p className="text-2xs text-zinc-300 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4.5 min-h-[60px] leading-relaxed">
                       {activeOrderModal.note || "ไม่มีหมายเหตุ"}
                     </p>
                   </div>
                 </div>
 
                 {/* Details Footer Stats */}
-                <div className="text-3xs text-zinc-550 space-y-1 font-medium bg-zinc-950/20 border border-zinc-850/50 rounded-2xl p-4">
+                <div className="text-3xs text-zinc-500 space-y-1.5 font-medium bg-zinc-950/20 border border-zinc-900 rounded-2xl p-4">
                   <div className="flex justify-between">
                     <span>วันที่ทำรายการ</span>
                     <span className="font-mono text-zinc-400">{formatDate(activeOrderModal.createdAt)}</span>
@@ -489,7 +485,7 @@ export default function AdminOrders() {
                   </div>
                   <div className="flex justify-between pt-1">
                     <span>สถานะการชำระเงิน</span>
-                    <span className={activeOrderModal.paymentStatus === "paid" ? "text-emerald-450 font-bold" : "text-red-450 font-bold"}>
+                    <span className={activeOrderModal.paymentStatus === "paid" ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
                       {activeOrderModal.paymentStatus === "paid" ? "ชำระเงินเรียบร้อยแล้ว" : "ยังไม่ได้ชำระเงิน"}
                     </span>
                   </div>
@@ -498,13 +494,13 @@ export default function AdminOrders() {
             </div>
 
             {/* Modal Bottom Controls */}
-            <div className="pt-4 border-t border-zinc-850 flex items-center justify-between gap-3">
-              <span className="text-3xs text-zinc-500 font-bold">ปรับเปลี่ยนขั้นตอนด่วน:</span>
+            <div className="pt-4 border-t border-zinc-900 flex items-center justify-between gap-3">
+              <span className="text-3xs text-zinc-550 font-bold">ปรับเปลี่ยนขั้นตอนด่วน:</span>
               <div className="flex gap-2">
                 {activeOrderModal.status === "pending" && (
                   <button
                     onClick={() => handleUpdateStatus(activeOrderModal._id, "confirmed")}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95"
+                    className="px-4.5 py-2.5 bg-gradient-to-r from-amber-550 to-orange-550 hover:from-amber-500 hover:to-orange-500 text-zinc-950 font-black text-3xs rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     ยืนยันออเดอร์
                   </button>
@@ -512,7 +508,7 @@ export default function AdminOrders() {
                 {(activeOrderModal.status === "confirmed" || activeOrderModal.status === "pending") && (
                   <button
                     onClick={() => handleUpdateStatus(activeOrderModal._id, "preparing")}
-                    className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95"
+                    className="px-4.5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-450 hover:to-red-450 text-white font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     เริ่มทำอาหาร
                   </button>
@@ -520,7 +516,7 @@ export default function AdminOrders() {
                 {activeOrderModal.status === "preparing" && (
                   <button
                     onClick={() => handleUpdateStatus(activeOrderModal._id, "ready")}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95"
+                    className="px-4.5 py-2.5 bg-gradient-to-r from-emerald-550 to-teal-550 hover:from-emerald-500 hover:to-teal-500 text-zinc-950 font-black text-3xs rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     ปรุงเสร็จเรียบร้อย
                   </button>
@@ -528,7 +524,7 @@ export default function AdminOrders() {
                 {activeOrderModal.status === "ready" && (
                   <button
                     onClick={() => handleUpdateStatus(activeOrderModal._id, "completed")}
-                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95"
+                    className="px-4.5 py-2.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-200 border border-zinc-700 font-bold text-3xs rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     ออเดอร์เสร็จสิ้น
                   </button>
@@ -536,7 +532,7 @@ export default function AdminOrders() {
                 {activeOrderModal.status !== "completed" && activeOrderModal.status !== "cancelled" && (
                   <button
                     onClick={() => handleUpdateStatus(activeOrderModal._id, "cancelled")}
-                    className="px-4 py-2 bg-red-950/30 border border-red-900/40 hover:bg-red-950/50 text-red-400 font-bold text-3xs rounded-xl transition-all active:scale-95"
+                    className="px-4.5 py-2.5 bg-red-950/20 border border-red-900/30 hover:bg-red-950/40 text-red-400 font-bold text-3xs rounded-xl transition-all active:scale-95 cursor-pointer"
                   >
                     ยกเลิกออเดอร์
                   </button>

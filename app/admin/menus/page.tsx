@@ -5,7 +5,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Check,
   X,
   Sparkles,
   Info,
@@ -84,7 +83,10 @@ export default function AdminMenus() {
   }, []);
 
   useEffect(() => {
-    fetchMenus();
+    const timer = setTimeout(() => {
+      fetchMenus();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchMenus]);
 
   // Open modal for adding a new item
@@ -145,13 +147,13 @@ export default function AdminMenus() {
     optIndex: number,
     choiceIndex: number,
     field: "name" | "priceAdded",
-    value: any
+    value: string | number
   ) => {
     const updated = [...formOptions];
     if (field === "priceAdded") {
       updated[optIndex].choices[choiceIndex].priceAdded = Number(value) || 0;
     } else {
-      updated[optIndex].choices[choiceIndex].name = value;
+      updated[optIndex].choices[choiceIndex].name = String(value);
     }
     setFormOptions(updated);
   };
@@ -270,19 +272,19 @@ export default function AdminMenus() {
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 to-zinc-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-50 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             จัดการเมนูอาหาร
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            สร้าง ปรับแต่ง และเปิด/ปิดรับออเดอร์ของแต่ละเมนูอาหารเพื่อรองรับลูกค้า
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            สร้าง ปรับแต่ง และเปิด/ปิดรับออเดอร์ของแต่ละเมนูอาหารเพื่อรองรับลูกค้า 🍳
           </p>
         </div>
 
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 duration-200"
+          className="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 hover:from-amber-400 hover:via-orange-450 hover:to-yellow-350 text-zinc-950 text-xs font-black rounded-2xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 duration-300 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
           <span>เพิ่มเมนูอาหารใหม่</span>
         </button>
       </div>
@@ -296,14 +298,14 @@ export default function AdminMenus() {
       {/* Menus Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-400 text-xs">กำลังโหลดแค็ตตาล็อก...</p>
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-zinc-500 text-xs font-semibold">กำลังโหลดแค็ตตาล็อก...</p>
         </div>
       ) : menus.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-20 bg-zinc-900/10 border border-zinc-850 rounded-3xl text-center text-zinc-550">
+        <div className="flex flex-col items-center justify-center p-20 bg-zinc-900/10 border border-zinc-900 rounded-3xl text-center text-zinc-500">
           <Layers className="w-12 h-12 text-zinc-800 mb-4" />
-          <p className="font-semibold text-sm">ยังไม่มีรายการอาหารในระบบ</p>
-          <p className="text-xs text-zinc-600 mt-1">เพิ่มเมนูแรกด่วนโดยคลิกปุ่ม 'เพิ่มเมนูอาหารใหม่' ที่มุมบนขวาได้ทันทีค่ะ</p>
+          <p className="font-bold text-xs text-zinc-400">ยังไม่มีรายการอาหารในระบบ</p>
+          <p className="text-2xs text-zinc-650 mt-1">เพิ่มเมนูแรกด่วนโดยคลิกปุ่ม &quot;เพิ่มเมนูอาหารใหม่&quot; ที่มุมบนขวาได้ทันทีค่ะ</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -312,8 +314,8 @@ export default function AdminMenus() {
             return (
               <div
                 key={menu._id}
-                className={`bg-zinc-900/50 backdrop-blur-md border rounded-3xl overflow-hidden shadow-xl hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between group ${
-                  menu.isAvailable ? "border-zinc-850" : "border-zinc-900 opacity-60"
+                className={`bg-zinc-900/40 backdrop-blur-2xl border rounded-3xl overflow-hidden shadow-2xl hover:border-amber-500/20 hover:shadow-amber-500/5 transition-all duration-500 flex flex-col justify-between group ${
+                  menu.isAvailable ? "border-zinc-900" : "border-zinc-950/80 opacity-50"
                 }`}
               >
                 {/* Image and Tags */}
@@ -322,13 +324,13 @@ export default function AdminMenus() {
                   <img
                     src={menu.imageUrl || defaultImage}
                     alt={menu.name}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
                   />
-                  <div className="absolute top-4 left-4 bg-zinc-950/80 backdrop-blur-md px-3 py-1 rounded-xl text-3xs font-bold text-amber-400 border border-zinc-800 uppercase tracking-widest">
-                    {menu.category === "main" ? "จานหลัก" : menu.category === "drink" ? "เครื่องดื่ม" : "เสริมพิเศษ"}
+                  <div className="absolute top-4 left-4 bg-zinc-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[9px] font-extrabold text-amber-500 border border-amber-500/10 uppercase tracking-widest">
+                    {menu.category === "main" ? "จานหลัก 🍳" : menu.category === "drink" ? "เครื่องดื่ม 🥤" : "เสริมพิเศษ ✨"}
                   </div>
                   <div className="absolute top-4 right-4 flex gap-1.5">
-                    <span className="bg-zinc-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl text-3xs font-bold text-zinc-300 border border-zinc-800">
+                    <span className="bg-zinc-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[9px] font-bold text-zinc-400 border border-zinc-900">
                       ลำดับ: {menu.sortOrder}
                     </span>
                   </div>
@@ -338,25 +340,25 @@ export default function AdminMenus() {
                 <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start gap-4">
-                      <h3 className="font-extrabold text-sm text-zinc-100 group-hover:text-indigo-400 transition-colors">
+                      <h3 className="font-extrabold text-xs text-zinc-150 group-hover:text-amber-400 transition-colors duration-300">
                         {menu.name}
                       </h3>
-                      <span className="font-black text-sm text-amber-500">฿{menu.price}</span>
+                      <span className="font-black text-xs text-amber-500 bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded-lg">฿{menu.price}</span>
                     </div>
-                    <p className="text-xs text-zinc-450 line-clamp-2">{menu.description || "เมนูไข่เจียวสูตรกลมกล่อม ทานร้อนๆ อร่อยสุดใจ"}</p>
+                    <p className="text-2xs text-zinc-450 leading-relaxed line-clamp-2">{menu.description || "เมนูไข่เจียวสูตรกลมกล่อม ทานร้อนๆ อร่อยสุดใจ"}</p>
                   </div>
 
                   {/* Option Summaries */}
                   {menu.options && menu.options.length > 0 && (
-                    <div className="bg-zinc-950/30 border border-zinc-850 rounded-2xl p-3 space-y-1">
-                      <span className="text-3xs font-semibold text-zinc-500 uppercase block tracking-wider">
+                    <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-3 space-y-1.5">
+                      <span className="text-[9px] font-bold text-zinc-550 uppercase block tracking-widest">
                         ตัวเลือกความอร่อย
                       </span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {menu.options.map((opt, idx) => (
                           <span
                             key={idx}
-                            className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-450 px-2 py-0.5 rounded-lg text-3xs"
+                            className="inline-block bg-zinc-900 border border-zinc-850 text-zinc-400 px-2 py-0.5 rounded-lg text-[9px] font-bold"
                           >
                             {opt.label} ({opt.choices.length})
                           </span>
@@ -367,22 +369,22 @@ export default function AdminMenus() {
                 </div>
 
                 {/* Footer Controls: Toggle & Edit/Delete */}
-                <div className="px-6 py-4.5 bg-zinc-950/30 border-t border-zinc-850 flex items-center justify-between gap-4">
+                <div className="px-6 py-4.5 bg-zinc-950/20 border-t border-zinc-900 flex items-center justify-between gap-4">
                   {/* Inline Toggle Switch */}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleToggleAvailable(menu._id, menu.isAvailable)}
-                      className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        menu.isAvailable ? "bg-emerald-600" : "bg-zinc-800"
+                      className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none ${
+                        menu.isAvailable ? "bg-amber-550" : "bg-zinc-800"
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-5.5 w-5.5 transform rounded-full bg-zinc-950 shadow ring-0 transition duration-300 ease-in-out ${
                           menu.isAvailable ? "translate-x-5.5" : "translate-x-0"
                         }`}
                       />
                     </button>
-                    <span className="text-3xs text-zinc-400 font-bold uppercase tracking-wider">
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
                       {menu.isAvailable ? "พร้อมสั่ง" : "ปิดรับ"}
                     </span>
                   </div>
@@ -391,14 +393,14 @@ export default function AdminMenus() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleOpenEditModal(menu)}
-                      className="p-2 bg-zinc-900 border border-zinc-850 text-zinc-450 hover:text-indigo-400 hover:border-indigo-950 rounded-xl transition-all"
+                      className="p-2.5 bg-zinc-900 border border-zinc-850 text-zinc-500 hover:text-amber-400 hover:border-amber-550/20 rounded-xl transition-all duration-300 cursor-pointer"
                       title="แก้ไขเมนูอาหาร"
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteMenu(menu._id)}
-                      className="p-2 bg-zinc-900 border border-zinc-850 text-zinc-450 hover:text-red-400 hover:border-red-950 rounded-xl transition-all"
+                      className="p-2.5 bg-zinc-900 border border-zinc-850 text-zinc-500 hover:text-red-400 hover:border-red-950/20 rounded-xl transition-all duration-300 cursor-pointer"
                       title="ลบเมนูอาหาร"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -419,14 +421,14 @@ export default function AdminMenus() {
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-850">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-5 h-5 text-amber-400" />
                 <h3 className="font-extrabold text-md text-zinc-100">
                   {editingMenu ? `แก้ไขข้อมูลเมนู: ${editingMenu.name}` : "เพิ่มเมนูอาหารชิ้นใหม่"}
                 </h3>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 bg-zinc-800 border border-zinc-750 hover:bg-zinc-755 text-zinc-400 hover:text-zinc-200 rounded-xl transition-all"
+                className="p-2 bg-zinc-800 border border-zinc-750 hover:bg-zinc-755 text-zinc-400 hover:text-zinc-200 rounded-xl transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -446,7 +448,7 @@ export default function AdminMenus() {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="ตัวอย่าง: ไข่เจียวหมูสับฟู"
-                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
+                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
                   />
                 </div>
 
@@ -463,7 +465,7 @@ export default function AdminMenus() {
                       value={formPrice}
                       onChange={(e) => setFormPrice(Number(e.target.value))}
                       placeholder="ตัวอย่าง: 60"
-                      className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl pl-9 pr-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
+                      className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl pl-9 pr-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
                     />
                   </div>
                 </div>
@@ -479,7 +481,7 @@ export default function AdminMenus() {
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="ตัวอย่าง: ไข่ไก่สดพิเศษ ตีฟูกรอบนอกนุ่มใน หอมฉุยเสิร์ฟเคียงข้าวสวยร้อนๆ..."
                   rows={2}
-                  className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
+                  className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
                 />
               </div>
 
@@ -491,8 +493,8 @@ export default function AdminMenus() {
                   </label>
                   <select
                     value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value as any)}
-                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 cursor-pointer"
+                    onChange={(e) => setFormCategory(e.target.value as IMenu["category"])}
+                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 cursor-pointer"
                   >
                     <option value="main">จานหลัก (Main)</option>
                     <option value="drink">เครื่องดื่ม (Drink)</option>
@@ -511,7 +513,7 @@ export default function AdminMenus() {
                       value={formImageUrl}
                       onChange={(e) => setFormImageUrl(e.target.value)}
                       placeholder="https://..."
-                      className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl pl-9 pr-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
+                      className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl pl-9 pr-4 py-3 text-xs text-zinc-200 placeholder-zinc-700 transition-all"
                     />
                   </div>
                 </div>
@@ -525,7 +527,7 @@ export default function AdminMenus() {
                     value={formSortOrder}
                     onChange={(e) => setFormSortOrder(Number(e.target.value))}
                     placeholder="0"
-                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 transition-all"
+                    className="w-full bg-zinc-950/50 border border-zinc-850 hover:border-zinc-800 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-zinc-200 transition-all"
                   />
                 </div>
               </div>
@@ -546,12 +548,12 @@ export default function AdminMenus() {
                     value={newOptionLabel}
                     onChange={(e) => setNewOptionLabel(e.target.value)}
                     placeholder="เช่น ความเผ็ด หรือ เพิ่มวัตถุดิบ..."
-                    className="flex-1 bg-zinc-950/40 border border-zinc-850 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-300 placeholder-zinc-700"
+                    className="flex-1 bg-zinc-950/40 border border-zinc-850 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-300 placeholder-zinc-700"
                   />
                   <button
                     type="button"
                     onClick={handleAddOption}
-                    className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 border border-zinc-750 text-indigo-400 font-semibold text-xs rounded-xl active:scale-95 transition-all shrink-0"
+                    className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-750 border border-zinc-750 text-amber-400 font-semibold text-xs rounded-xl active:scale-95 transition-all shrink-0 cursor-pointer"
                   >
                     + เพิ่มกลุ่มหัวข้อ
                   </button>
@@ -567,7 +569,7 @@ export default function AdminMenus() {
                         <button
                           type="button"
                           onClick={() => handleRemoveOption(optIdx)}
-                          className="absolute top-4 right-4 p-1.5 bg-zinc-900 border border-zinc-800 hover:border-red-950/40 text-zinc-500 hover:text-red-400 rounded-lg transition-all"
+                          className="absolute top-4 right-4 p-1.5 bg-zinc-900 border border-zinc-800 hover:border-red-950/40 text-zinc-500 hover:text-red-400 rounded-lg transition-all cursor-pointer"
                           title="ลบหัวข้อนี้"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -579,7 +581,7 @@ export default function AdminMenus() {
 
                         {/* Choices Sub-list */}
                         <div className="space-y-2">
-                          <span className="text-3xs font-semibold text-zinc-500 uppercase block tracking-widest">
+                          <span className="text-3xs font-semibold text-zinc-550 uppercase block tracking-widest">
                             ตัวเลือกย่อยและราคาบวกเพิ่ม
                           </span>
                           
@@ -592,10 +594,10 @@ export default function AdminMenus() {
                                   handleChoiceFieldChange(optIdx, choiceIdx, "name", e.target.value)
                                 }
                                 placeholder="ตัวอย่าง: เผ็ดมาก หรือ +หมูสับ"
-                                className="flex-1 bg-zinc-950/50 border border-zinc-850 focus:border-indigo-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-zinc-300"
+                                className="flex-1 bg-zinc-950/50 border border-zinc-850 focus:border-amber-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-zinc-300"
                               />
                               <div className="relative w-28">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-3xs text-zinc-500">+ ฿</span>
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-3xs text-zinc-550">+ ฿</span>
                                 <input
                                   type="number"
                                   value={choice.priceAdded}
@@ -608,13 +610,13 @@ export default function AdminMenus() {
                                     )
                                   }
                                   placeholder="0"
-                                  className="w-full bg-zinc-950/50 border border-zinc-850 focus:border-indigo-500 focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-350 text-right"
+                                  className="w-full bg-zinc-950/50 border border-zinc-850 focus:border-amber-500 focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-350 text-right"
                                 />
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveChoice(optIdx, choiceIdx)}
-                                className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-650 hover:text-red-400 rounded-lg transition-all"
+                                className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-650 hover:text-red-400 rounded-lg transition-all cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -624,7 +626,7 @@ export default function AdminMenus() {
                           <button
                             type="button"
                             onClick={() => handleAddChoice(optIdx)}
-                            className="text-3xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-all pt-1 focus:outline-none"
+                            className="text-3xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-all pt-1 focus:outline-none cursor-pointer"
                           >
                             + เพิ่มตัวเลือกย่อยในกลุ่มนี้
                           </button>
@@ -646,14 +648,14 @@ export default function AdminMenus() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-3.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-bold text-xs rounded-2xl active:scale-95 transition-all"
+                  className="px-5 py-3.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmitForm}
-                  className="px-5 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-2xl shadow-lg shadow-indigo-600/10 active:scale-95 transition-all"
+                  className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/10 active:scale-95 transition-all cursor-pointer"
                 >
                   บันทึกข้อมูลเมนู
                 </button>
