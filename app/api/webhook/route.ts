@@ -5,7 +5,7 @@ import {
   menuFlexMessage,
   orderConfirmFlexMessage,
 } from "@/lib/services/lineService";
-import { getAvailableMenus } from "@/lib/services/menuService";
+import { getAvailableMenus, getMenuById } from "@/lib/services/menuService";
 import {
   createOrder,
   getLatestOrderByUser,
@@ -128,6 +128,19 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
   if (action === "order") {
     const menuId = params.get("menuId");
     if (!menuId) return;
+
+    // Validate menu is still available before creating order
+    // (Old Flex Messages in chat can trigger orders for disabled menus)
+    const menu = await getMenuById(menuId);
+    if (!menu || !menu.isAvailable) {
+      await replyMessage(replyToken, [
+        {
+          type: "text",
+          text: "ขออภัยค่ะ เมนูนี้ปิดรับออเดอร์ชั่วคราว กรุณาพิมพ์ 'สั่ง' เพื่อดูเมนูที่เปิดอยู่",
+        },
+      ]);
+      return;
+    }
 
     // Fetch user profile display name
     let displayName = "ลูกค้า LINE";
