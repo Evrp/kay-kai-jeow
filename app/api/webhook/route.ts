@@ -191,10 +191,10 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
     if (order.status !== "pending") {
       const statusTranslations: Record<string, string> = {
         confirmed: "ได้รับการยืนยันและกำลังเตรียมวัตถุดิบแล้วค่ะ 🍳",
-        preparing: "กำลังปรุงอาหารอย่างพิถีพิถันอยู่ค่ะ 👩‍🍳",
-        ready: "ปรุงเสร็จเรียบร้อยพร้อมเสิร์ฟ/จัดส่งแล้วค่ะ 📦",
-        completed: "เสร็จสมบูรณ์เรียบร้อยแล้วค่ะ 🥰",
-        cancelled: "ถูกยกเลิกเรียบร้อยแล้วค่ะ ❌",
+        preparing: "กำลังปรุงอาหารอยู่ค่ะ 👩‍🍳",
+        ready: "ปรุงเสร็จพร้อมจัดส่งแล้วค่ะ 📦",
+        completed: "เสร็จสมบูรณ์แล้วค่ะ 🥰",
+        cancelled: "ถูกยกเลิกแล้วค่ะ ❌",
       };
 
       const currentStatusText = statusTranslations[order.status] || order.status;
@@ -202,7 +202,7 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
       await replyMessage(replyToken, [
         {
           type: "text",
-          text: `ออเดอร์ #${order.orderId} นี้${currentStatusText}\n\nหากต้องการเช็คสถานะล่าสุด สามารถพิมพ์ 'ดูออเดอร์' หรือติดต่อแอดมินได้ตลอดเวลาเลยนะคะ`,
+          text: `❌ ไม่สามารถดำเนินการได้: ออเดอร์ #${order.orderId} นี้ได้รับการประมวลผลไปแล้วค่ะ\n(สถานะปัจจุบัน: ${currentStatusText})\n\nหากต้องการตรวจสอบสถานะล่าสุด สามารถพิมพ์ 'ดูออเดอร์' หรือสอบถามแอดมินได้ตลอดเวลานะคะ`,
         },
       ]);
       return;
@@ -233,10 +233,10 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
     if (order.status !== "pending") {
       const statusTranslations: Record<string, string> = {
         confirmed: "ได้รับการยืนยันและกำลังเตรียมวัตถุดิบแล้วค่ะ 🍳",
-        preparing: "กำลังปรุงอาหารอย่างพิถีพิถันอยู่ค่ะ 👩‍🍳",
-        ready: "ปรุงเสร็จเรียบร้อยพร้อมเสิร์ฟ/จัดส่งแล้วค่ะ 📦",
-        completed: "เสร็จสมบูรณ์เรียบร้อยแล้วค่ะ 🥰",
-        cancelled: "ถูกยกเลิกเรียบร้อยแล้วค่ะ ❌",
+        preparing: "กำลังปรุงอาหารอยู่ค่ะ 👩‍🍳",
+        ready: "ปรุงเสร็จพร้อมจัดส่งแล้วค่ะ 📦",
+        completed: "เสร็จสมบูรณ์แล้วค่ะ 🥰",
+        cancelled: "ถูกยกเลิกแล้วค่ะ ❌",
       };
 
       const currentStatusText = statusTranslations[order.status] || order.status;
@@ -244,7 +244,7 @@ async function handlePostback(data: string, replyToken: string, lineUserId: stri
       await replyMessage(replyToken, [
         {
           type: "text",
-          text: `ขออภัยค่ะ ออเดอร์ #${order.orderId} นี้${currentStatusText} จึงไม่สามารถยกเลิกได้แล้วในขณะนี้ค่ะ`,
+          text: `❌ ไม่สามารถดำเนินการได้: ออเดอร์ #${order.orderId} นี้ได้รับการประมวลผลไปแล้วค่ะ\n(สถานะปัจจุบัน: ${currentStatusText})\n\nจึงไม่สามารถยกเลิกออเดอร์ได้แล้วในขณะนี้ค่ะ`,
         },
       ]);
       return;
